@@ -1,0 +1,22 @@
+services:
+  honeypot:
+    build: .
+    container_name: nexus-honeypot
+    ports:
+      - "5000:5000"
+    networks:
+      - honeynet
+    restart: unless-stopped
+
+  hydra:
+    image: vanhauser/hydra
+    container_name: attacker-hydra
+    entrypoint: tail -f /dev/null # Keep the container running for interactive use
+    networks:
+      - honeynet
+    depends_on:
+      - honeypot
+
+networks:
+  honeynet:
+    driver: bridge

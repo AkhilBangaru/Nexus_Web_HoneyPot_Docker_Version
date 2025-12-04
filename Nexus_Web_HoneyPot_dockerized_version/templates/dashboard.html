@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-color: #1a1c29;
+            --card-bg: #23263a;
+            --text-primary: #ffffff;
+            --text-secondary: #8b92a5;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: auto auto 1fr;
+            gap: 20px;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        /* Gauges Row */
+        .gauge-card {
+            grid-column: span 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .gauge-container {
+            width: 120px;
+            height: 120px;
+            position: relative;
+        }
+
+        .gauge-value {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Middle Row */
+        .middle-row {
+            grid-column: span 4;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+
+        .table-widget {
+            grid-column: span 1;
+        }
+
+        .stats-widget {
+            grid-column: span 1;
+        }
+
+        /* Table Styling */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-secondary);
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        td {
+            padding: 12px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .ip-badge {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-blue);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        /* Bottom Row - Line Chart */
+        .chart-card {
+            grid-column: span 4;
+            height: 300px;
+        }
+
+        /* Utilities */
+        .text-green {
+            color: var(--accent-green);
+        }
+
+        .text-blue {
+            color: var(--accent-blue);
+        }
+
+        .text-purple {
+            color: var(--accent-purple);
+        }
+
+        .text-cyan {
+            color: var(--accent-cyan);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+        <!-- Row 1: Gauges -->
+        <div class="card gauge-card">
+            <div class="card-header">SQL Injection</div>
+            <div class="gauge-container">
+                <canvas id="gauge1"></canvas>
+                <div class="gauge-value text-blue">{{ sqli_pct }}%</div>
+            </div>
+            <div class="card-header" style="margin-top: 10px; margin-bottom: 0;">Risk Level</div>
+        </div>
+
+        <div class="card gauge-card">
+            <div class="card-header">XSS Attempts</div>
+            <div class="gauge-container">
+                <canvas id="gauge2"></canvas>
+                <div class="gauge-value text-green">{{ xss_pct }}%</div>
+            </div>
+            <div class="card-header" style="margin-top: 10px; margin-bottom: 0;">Payloads</div>
+        </div>
+
+        <div class="card gauge-card">
+            <div class="card-header">Admin Targeting</div>
+            <div class="gauge-container">
+                <canvas id="gauge3"></canvas>
+                <div class="gauge-value text-purple">{{ admin_pct }}%</div>
+            </div>
+            <div class="card-header" style="margin-top: 10px; margin-bottom: 0;">User 'admin'</div>
+        </div>
+
+        <div class="card gauge-card">
+            <div class="card-header">Total Attacks</div>
+            <div class="gauge-container">
+                <canvas id="gauge4"></canvas>
+                <div class="gauge-value text-cyan">100%</div>
+            </div>
+            <div class="card-header" style="margin-top: 10px; margin-bottom: 0;" id="total-attacks-text">{{
+                total_attacks_today }} Events</div>
+        </div>
+
+        <!-- Row 2: Tables -->
+        <div class="middle-row">
+            <div class="card table-widget">
+                <div class="card-header">Top Attack Sources</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Location</th>
+                            <th>Hits</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ip, location, count in top_attackers %}
+                        <tr>
+                            <td><span class="ip-badge">{{ ip }}</span></td>
+                            <td>{{ location }}</td>
+                            <td>{{ count }}</td>
+                            <td class="text-green">Blocked</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card stats-widget">
+                <div class="card-header">Recent Payloads</div>
+                <div style="overflow-y: auto; max-height: 200px;">
+                    <table style="font-size: 0.8rem;">
+                        <tbody>
+                            {% for username, password, timestamp in recent_payloads %}
+                            <tr>
+                                <td style="color: var(--text-secondary);">{{ timestamp.split()[1] }}</td>
+                                <td style="font-family: monospace; color: #f87171;">{{ username[:15] }}...</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Main Chart -->
+        <div class="card chart-card">
+            <div class="card-header">Attack Traffic (24h)</div>
+            <div style="height: 100%; width: 100%;">
+                <canvas id="mainChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Gauge Helper ---
+        function createGauge(id, value, color) {
+            const ctx = document.getElementById(id).getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [value, 100 - value],
+                        backgroundColor: [color, '#374151'],
+                        borderWidth: 0,
+                        cutout: '85%'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { tooltip: { enabled: false }, legend: { display: false } },
+                    animation: { animateScale: true, animateRotate: true }
+                }
+            });
+        }
+
+        // Init Gauges
+        createGauge('gauge1', {{ sqli_pct }}, '#3b82f6');
+        createGauge('gauge2', {{ xss_pct }}, '#10b981');
+        createGauge('gauge3', {{ admin_pct }}, '#8b5cf6');
+        createGauge('gauge4', 100, '#06b6d4');
+
+        // --- Main Chart ---
+        const hourlyData = JSON.parse('{{ attacks_per_hour | safe }}');
+        const mainCtx = document.getElementById('mainChart').getContext('2d');
+
+        // Gradient
+        const gradient = mainCtx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
+        new Chart(mainCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({ length: 24 }, (_, i) => i + ':00'),
+                datasets: [{
+                    label: 'Attacks',
+                    data: hourlyData,
+                    borderColor: '#3b82f6',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }, {
+                    label: 'Baseline',
+                    data: hourlyData.map(x => Math.max(0, x - 2 + Math.random() * 4)),
+                    borderColor: '#10b981',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    borderDash: [5, 5]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        grid: { color: '#374151' },
+                        ticks: { color: '#9ca3af' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#9ca3af' }
+                    }
+                }
+            }
+        });
+
+        // --- Real-time Updates ---
+        const gaugeCharts = [
+            Chart.getChart('gauge1'),
+            Chart.getChart('gauge2'),
+            Chart.getChart('gauge3'),
+            Chart.getChart('gauge4')
+        ];
+        const mainChart = Chart.getChart('mainChart');
+
+        function updateDashboard() {
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) return; // Handle auth error silently or redirect
+
+                    // Update Gauges
+                    updateGauge(gaugeCharts[0], data.sqli_pct);
+                    updateGauge(gaugeCharts[1], data.xss_pct);
+                    updateGauge(gaugeCharts[2], data.admin_pct);
+                    // Gauge 4 is always 100%, but we update the text below it
+                    document.querySelector('#gauge1 + .gauge-value').textContent = data.sqli_pct + '%';
+                    document.querySelector('#gauge2 + .gauge-value').textContent = data.xss_pct + '%';
+                    document.querySelector('#gauge3 + .gauge-value').textContent = data.admin_pct + '%';
+
+                    // Update Total Count Text
+                            <td><span class="ip-badge">${ip}</span></td>
+                            <td>${loc}</td>
+                            <td>${count}</td>
+                            <td class="text-green">Blocked</td>
+                        </tr >
+                        `).join('');
+
+                    // Update Recent Payloads
+                    const payloadsBody = document.querySelector('.stats-widget tbody');
+                    payloadsBody.innerHTML = data.recent_payloads.map(([u, p, t]) => `
+                        < tr >
+                            <td style="color: var(--text-secondary);">${t.split(' ')[1]}</td>
+                            <td style="font-family: monospace; color: #f87171;">${u.substring(0, 15)}...</td>
+                        </tr >
+                    `).join('');
+                })
+                .catch(err => console.error('Error fetching stats:', err));
+        }
+
+        function updateGauge(chart, value) {
+            chart.data.datasets[0].data = [value, 100 - value];
+            chart.update();
+        }
+
+        // Poll every 3 seconds
+        setInterval(updateDashboard, 3000);
+
+    </script>
+</body>
+
+</html>

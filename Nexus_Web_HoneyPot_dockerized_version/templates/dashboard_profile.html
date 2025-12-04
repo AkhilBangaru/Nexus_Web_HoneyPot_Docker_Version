@@ -1,0 +1,157 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Attacker Profile{% endblock %}
+
+{% block head %}
+<style>
+    .profile-grid {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 20px;
+        height: 100%;
+    }
+
+    .profile-card {
+        background-color: var(--bg-panel);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .flag-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        display: block;
+    }
+
+    .ip-large {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 5px;
+    }
+
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #2d3748;
+        font-size: 0.9rem;
+    }
+
+    .info-label {
+        color: var(--text-secondary);
+    }
+
+    .info-val {
+        color: var(--accent-cyan);
+        font-weight: 600;
+    }
+
+    .ban-btn {
+        background-color: var(--accent-red);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 30px;
+        width: 100%;
+        transition: opacity 0.2s;
+    }
+
+    .ban-btn:hover {
+        opacity: 0.9;
+    }
+
+    /* Timeline */
+    .timeline-container {
+        background-color: var(--bg-panel);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-left: 30px;
+        margin-bottom: 20px;
+        border-left: 2px solid var(--border-color);
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        background-color: var(--accent-purple);
+        border-radius: 50%;
+    }
+
+    .timeline-time {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 5px;
+    }
+
+    .timeline-content {
+        background-color: #0f111a;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-grid">
+    <!-- Left: Profile Card -->
+    <div class="profile-card">
+        <div class="flag-icon">
+            <!-- Simple flag mapping or generic globe -->
+            <i class="fa-solid fa-earth-americas text-cyan"></i>
+        </div>
+        <div class="ip-large">{{ ip }}</div>
+        <div style="color: var(--text-secondary); margin-bottom: 30px;">{{ location }}</div>
+
+        <div class="info-row">
+            <span class="info-label">Country</span>
+            <span class="info-val">{{ country }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">ASN</span>
+            <span class="info-val">{{ asn }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Total Events</span>
+            <span class="info-val">{{ total_events }}</span>
+        </div>
+        <div class="info-row">
+            <span class="info-label">Threat Score</span>
+            <span class="info-val text-red">CRITICAL</span>
+        </div>
+
+        <button class="ban-btn"><i class="fa-solid fa-ban"></i> BLOCK IP ADDRESS</button>
+    </div>
+
+    <!-- Right: Attack History -->
+    <div class="timeline-container">
+        <h3 style="margin-top: 0; margin-bottom: 20px;">Attack History</h3>
+        {% for log in history %}
+        <div class="timeline-item">
+            <div class="timeline-time">{{ log[0] }}</div>
+            <div class="timeline-content">
+                <span style="color: #f472b6;">User:</span> {{ log[1] }} <br>
+                <span style="color: #f472b6;">Pass:</span> {{ log[2] }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

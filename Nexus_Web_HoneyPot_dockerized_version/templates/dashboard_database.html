@@ -1,0 +1,88 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Attacker Database{% endblock %}
+
+{% block head %}
+<style>
+    .db-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+
+    .attacker-card {
+        background-color: var(--bg-panel);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+    }
+
+    .attacker-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        border-color: var(--accent-cyan);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .ip-text {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .flag-mini {
+        color: var(--text-secondary);
+        font-size: 1.2rem;
+    }
+
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        color: var(--text-secondary);
+    }
+
+    .stat-val {
+        color: var(--accent-cyan);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="db-grid">
+    {% for ip, location, country, count, last_seen in attackers %}
+    <a href="/nexus-profile/{{ ip }}" class="attacker-card">
+        <div class="card-header">
+            <div class="ip-text">{{ ip }}</div>
+            <div class="flag-mini"><i class="fa-solid fa-earth-americas"></i></div>
+        </div>
+
+        <div class="stat-row">
+            <span>Location</span>
+            <span style="color: #e2e8f0;">{{ country }}</span>
+        </div>
+        <div class="stat-row">
+            <span>Total Attacks</span>
+            <span class="stat-val">{{ count }}</span>
+        </div>
+        <div class="stat-row">
+            <span>Last Seen</span>
+            <span style="font-size: 0.8rem;">{{ last_seen.split()[1] }}</span> <!-- Show time only -->
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

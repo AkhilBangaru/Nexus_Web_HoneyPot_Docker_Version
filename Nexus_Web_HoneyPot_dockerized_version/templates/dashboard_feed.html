@@ -1,0 +1,212 @@
+{% extends "dashboard_base.html" %}
+
+{% block title %}Live Threat Feed{% endblock %}
+
+{% block head %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<style>
+    /* DataTables Dark Theme Overrides */
+    .dataTables_wrapper {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    table.dataTable tbody tr {
+        background-color: var(--bg-panel);
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--border-color);
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    table.dataTable tbody tr:hover {
+        background-color: #2d3748;
+    }
+
+    table.dataTable thead th {
+        border-bottom: 1px solid var(--accent-cyan);
+        color: var(--accent-cyan);
+    }
+
+    .dataTables_length,
+    .dataTables_filter,
+    .dataTables_info,
+    .dataTables_paginate {
+        color: var(--text-secondary) !important;
+        margin-top: 10px;
+    }
+
+    /* Payload Highlights */
+    .neon-highlight {
+        color: #f472b6;
+        /* Pink/Neon */
+        font-weight: bold;
+        text-shadow: 0 0 5px rgba(244, 114, 182, 0.5);
+    }
+
+    /* Modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        background-color: var(--bg-panel);
+        margin: 10% auto;
+        padding: 0;
+        border: 1px solid var(--accent-cyan);
+        width: 60%;
+        border-radius: 8px;
+        box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+    }
+
+    .modal-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-body {
+        padding: 20px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .inspector-panel {
+        background-color: #0f111a;
+        padding: 15px;
+        border-radius: 6px;
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #a5b4fc;
+        overflow-wrap: break-word;
+    }
+
+    .inspector-label {
+        color: var(--text-secondary);
+        margin-bottom: 5px;
+        display: block;
+        font-family: sans-serif;
+    }
+
+    .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover {
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card" style="background: var(--bg-panel); padding: 20px; border-radius: 8px;">
+    <table id="feedTable" class="display" style="width:100%">
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Source IP</th>
+                <th>Type</th>
+                <th>Payload Preview</th>
+                <th>User Agent</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr onclick="openInspector('{{ log.ip }}', '{{ log.type }}', `{{ log.raw_user }}`, `{{ log.raw_pass }}`)">
+                <td>{{ log.timestamp }}</td>
+                <td><a href="/nexus-profile/{{ log.ip }}" style="color: var(--accent-cyan); text-decoration: none;"
+                        onclick="event.stopPropagation()">{{ log.ip }}</a></td>
+                <td><span class="badge"
+                        style="color: {% if log.type == 'SQLi' %}#f87171{% elif log.type == 'XSS' %}#34d399{% else %}#94a3b8{% endif %}">{{
+                        log.type }}</span></td>
+                <td style="font-family: monospace;">{{ log.payload | safe }}</td>
+                <td style="max-width: 200px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">{{ log.ua
+                    }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal -->
+<div id="inspectorModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 style="margin:0;">Payload Inspector</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div>
+                <span class="inspector-label">Raw Username</span>
+                <div class="inspector-panel" id="rawUser"></div>
+                <br>
+                <span class="inspector-label">Raw Password</span>
+                <div class="inspector-panel" id="rawPass"></div>
+            </div>
+            <div>
+                <span class="inspector-label">Decoded Analysis</span>
+                <div class="inspector-panel" id="decodedContent" style="color: #34d399;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#feedTable').DataTable({
+            order: [[0, 'desc']],
+            pageLength: 15,
+            lengthChange: false
+        });
+    });
+
+    const modal = document.getElementById("inspectorModal");
+
+    function openInspector(ip, type, user, pass) {
+        document.getElementById('rawUser').textContent = user;
+        document.getElementById('rawPass').textContent = pass;
+
+        // Simple decoding
+        let decoded = "";
+        try {
+            decoded += "User: " + decodeURIComponent(user) + "\n";
+            decoded += "Pass: " + decodeURIComponent(pass);
+        } catch (e) {
+            decoded = "Could not decode fully.";
+        }
+
+        document.getElementById('decodedContent').textContent = decoded;
+        modal.style.display = "block";
+    }
+
+    function closeModal() {
+        modal.style.display = "none";
+    }
+
+    window.onclick = function (event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
+{% endblock %}
