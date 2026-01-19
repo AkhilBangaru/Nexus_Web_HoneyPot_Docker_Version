@@ -11,7 +11,7 @@ This folder contains a fully containerized version of the Nexus Web Honeypot.
 
 1. **Start the Honeypot**:  
 Run the following command in this directory:
-```bash
+```
 docker-compose up -d --build
 ```
 This will build the image and start the `honeypot` container (and the `hydra` container).
@@ -26,26 +26,26 @@ This will build the image and start the `honeypot` container (and the `hydra` co
 You can use the built-in `hydra` container to simulate attacks within the Docker network.
 
 Access the Hydra container:
-```bash
+```
 docker exec -it attacker-hydra /bin/sh
 ```
 
 This `/bin/sh` opens up a shell inside the attacker container.
 
 Run an attack (targeting the `honeypot` service name):
-```bash
+```
 hydra -l admin -P /passwords.txt -s 5000 nexus-honeypot http-post-form "/admin:username=^USER^&password=^PASS^:Incorrect username or password"
 ```
 
 *Note: The honeypot uses a secure password. Hydra will complete without finding a match, which confirms the honeypot is successfully trapping and logging attempts without being breached.*
 
 4. **View Logs**:
-```bash
+```
 docker-compose logs -f honeypot
 ```
 
 5. **Stop**:
-```bash
+```
 docker-compose down
 ```
 
