@@ -49,7 +49,7 @@ docker-compose logs -f honeypot
 docker-compose down
 ```
 
-## 🖼 Screenshots (placeholders)
+##  Screenshots (placeholders)
 
 ### Fake Website
 <img width="2311" height="1746" alt="Screenshot 2025-12-04 at 19-44-18 Apex Solutions" src="https://github.com/user-attachments/assets/aa56d585-10d0-4b5a-8175-af8aa8d37a38" />
@@ -76,14 +76,14 @@ docker-compose down
 **For Non Dockerized Version Or Need Any Additional Details Visit** --> https://github.com/AkhilBangaru/Nexus_Web_Honeypot/
 
 
-## ⚠️ Security Disclaimer
+##  Security Disclaimer
 > **This project is STRICTLY for educational & research purposes.**  
 > Do **NOT** deploy publicly or attempt attacks on systems without explicit permission.  
 > The author assumes zero liability for misuse.
 
 ---
 
-## 🚀 Future Roadmap
+##  Future Roadmap
 - SMTP email alerts  
 - Automated attacker fingerprinting  
 - CSV / JSON export  
@@ -92,10 +92,10 @@ docker-compose down
 
 ---
 
-## 📜 License
+##  License
 Released under the **MIT License** — free for personal & commercial use.
 
 ---
 
-## ⭐ Final Note
+##  Final Note
 If you like this project, consider giving it a **GitHub star ⭐** and contributing enhancements!
